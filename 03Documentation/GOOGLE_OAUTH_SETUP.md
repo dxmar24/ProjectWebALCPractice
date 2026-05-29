@@ -28,7 +28,7 @@ Set these in the Render API service:
 
 ```env
 GOOGLE_CLIENT_ID=your_google_web_client_id.apps.googleusercontent.com
-GOOGLE_AUTO_REGISTER_ROLE=director
+GOOGLE_AUTO_REGISTER_ROLE=student
 GOOGLE_AUTO_REGISTER_BRANCH_ID=1
 ```
 
@@ -67,4 +67,4 @@ It adds:
 - `users.auth_provider`
 - a unique index for Google account IDs
 
-New Google users are registered as directors by default for the homework demo. Existing users with the same email are linked to their Google account after the first successful Google login.
+New Google users are registered as students by default for the homework demo. Existing users with the same email are linked to their Google account after the first successful Google login.

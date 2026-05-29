@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Model\Student;
 use App\Model\User;
 use InvalidArgumentException;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -67,6 +68,10 @@ final class AuthService
             throw new InvalidArgumentException('This account is inactive.');
         }
 
+        if (($user->role ?? '') === 'student' && empty($user->student_id)) {
+            $user->student_id = $this->studentIdFromGoogleClaims($claims);
+        }
+
         $existingGoogleSub = trim((string) ($user->google_sub ?? ''));
         if ($existingGoogleSub !== '' && $existingGoogleSub !== $googleSub) {
             throw new InvalidArgumentException('This email is already linked to another Google account.');
@@ -123,9 +128,9 @@ final class AuthService
 
     private function googleDefaultRole(): string
     {
-        $role = strtolower(trim((string) ($_ENV['GOOGLE_AUTO_REGISTER_ROLE'] ?? 'director')));
+        $role = strtolower(trim((string) ($_ENV['GOOGLE_AUTO_REGISTER_ROLE'] ?? 'student')));
 
-        return in_array($role, ['teacher', 'student', 'director'], true) ? $role : 'director';
+        return in_array($role, ['teacher', 'student', 'director'], true) ? $role : 'student';
     }
 
     private function googleDefaultBranchId(): int
@@ -133,6 +138,35 @@ final class AuthService
         $branchId = (int) ($_ENV['GOOGLE_AUTO_REGISTER_BRANCH_ID'] ?? 1);
 
         return $branchId > 0 ? $branchId : 1;
+    }
+
+    /**
+     * @param array<string, mixed> $claims
+     */
+    private function studentIdFromGoogleClaims(array $claims): int
+    {
+        $email = strtolower(trim((string) ($claims['email'] ?? '')));
+        $student = Student::query()
+            ->whereRaw('lower(email) = ?', [$email])
+            ->first();
+
+        if (!$student) {
+            $student = Student::query()->create([
+                'branch_id' => $this->googleDefaultBranchId(),
+                'national_id' => null,
+                'full_name' => trim((string) ($claims['name'] ?? $email)),
+                'email' => $email,
+                'phone' => 'google-' . substr(sha1((string) ($claims['sub'] ?? $email)), 0, 10),
+                'level' => 'B1',
+                'scholarship_percent' => 0,
+                'guardian_name' => '',
+                'guardian_phone' => '',
+                'comments' => 'Created from Google sign-in for OAuth practice.',
+                'status' => 'active',
+            ]);
+        }
+
+        return (int) $student->id;
     }
 
     /**

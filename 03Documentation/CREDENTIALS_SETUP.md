@@ -97,7 +97,7 @@ DB_PASSWORD=your_database_password
 DB_SSLMODE=require
 FRONTEND_ORIGINS=https://projectwebalcpractice-frontend.onrender.com,http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5500,http://localhost:5500
 GOOGLE_CLIENT_ID=your_google_web_client_id.apps.googleusercontent.com
-GOOGLE_AUTO_REGISTER_ROLE=director
+GOOGLE_AUTO_REGISTER_ROLE=student
 GOOGLE_AUTO_REGISTER_BRANCH_ID=1
 ```
 

@@ -34,7 +34,7 @@ services:
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_AUTO_REGISTER_ROLE
-        value: director
+        value: student
       - key: GOOGLE_AUTO_REGISTER_BRANCH_ID
         value: 1
 
