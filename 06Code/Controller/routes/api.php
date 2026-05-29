@@ -86,6 +86,7 @@ return static function (App $app, JsonResponder $responder): void {
     $app->post('/api/enrollments', [$enrollmentController, 'store']);
     $app->post('/api/auth/login', [$authController, 'login']);
     $app->post('/api/auth/google', [$authController, 'google']);
+    $app->post('/api/auth/google/enroll', [$authController, 'googleEnroll']);
     $app->post('/api/kiosk/attendance', [$kioskController, 'store']);
     $app->post('/api/teacher-attendance/check-in', [$teacherAttendanceController, 'store']);
 

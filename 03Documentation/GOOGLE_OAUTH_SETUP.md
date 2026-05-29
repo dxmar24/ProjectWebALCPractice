@@ -53,18 +53,10 @@ The static build runs `06Code/View/render-build.sh`, which writes these values i
 
 ## Database
 
-If this is a new empty database, run `06Code/Controller/database/supabase_schema.sql`.
+For the shared class database, do not reset or recreate the schema. The Google flow uses the existing `users` and `students` tables:
 
-If this is an existing database, run only:
+- If the Google email already exists in `users`, the backend logs that user in.
+- If the Google email exists as an active `students.email`, the backend creates the matching `users` row and logs in.
+- If the email does not exist, the frontend asks the student to complete enrollment and the backend creates both `students` and `users`.
 
-```text
-06Code/Controller/database/google_oauth_migration.sql
-```
-
-It adds:
-
-- `users.google_sub`
-- `users.auth_provider`
-- a unique index for Google account IDs
-
-New Google users are registered as students by default for the homework demo. Existing users with the same email are linked to their Google account after the first successful Google login.
+The optional `google_oauth_migration.sql` file is kept only for experiments that want to store Google account IDs. It is not required for the compatible shared-database flow.

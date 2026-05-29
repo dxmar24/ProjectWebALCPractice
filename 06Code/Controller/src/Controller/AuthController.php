@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Model\AttendanceRecord;
+use App\Model\Branch;
 use App\Model\Student;
 use App\Model\User;
 use App\Service\AttendanceSummaryService;
@@ -55,16 +56,135 @@ final class AuthController
     public function google(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
-        $credential = (string) ($data['credential'] ?? '');
+        $credential = (string) ($data['id_token'] ?? $data['credential'] ?? '');
 
         try {
             $claims = $this->googleTokens->verify($credential);
-            $user = $this->auth->userFromGoogleClaims($claims);
         } catch (InvalidArgumentException $exception) {
             return $this->responder->json($response, ['message' => $exception->getMessage()], 401);
         } catch (\RuntimeException $exception) {
             return $this->responder->json($response, ['message' => $exception->getMessage()], 503);
         }
+
+        $email = strtolower(trim((string) ($claims['email'] ?? '')));
+        $user = User::query()
+            ->where('email', $email)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$user) {
+            $student = Student::query()
+                ->whereRaw('lower(email) = ?', [$email])
+                ->where('status', 'active')
+                ->first();
+
+            if (!$student) {
+                return $this->responder->json($response, [
+                    'user_exists' => false,
+                    'email' => $email,
+                    'name' => trim((string) ($claims['name'] ?? '')),
+                    'picture' => (string) ($claims['picture'] ?? ''),
+                ]);
+            }
+
+            $user = new User();
+            $user->email = $email;
+            $user->name = $student->full_name;
+            $user->role = 'student';
+            $user->branch_id = $student->branch_id;
+            $user->student_id = $student->id;
+            $user->password_hash = password_hash(bin2hex(random_bytes(32)), PASSWORD_BCRYPT);
+            $user->is_active = true;
+        }
+
+        $user->last_login_at = date('Y-m-d H:i:s');
+        $user->save();
+
+        return $this->responder->json($response, [
+            'token' => $this->auth->issueToken($user),
+            'user' => $this->auth->publicUser($user),
+        ]);
+    }
+
+    public function googleEnroll(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $credential = (string) ($data['id_token'] ?? $data['credential'] ?? '');
+
+        try {
+            $claims = $this->googleTokens->verify($credential);
+        } catch (InvalidArgumentException $exception) {
+            return $this->responder->json($response, ['message' => $exception->getMessage()], 401);
+        } catch (\RuntimeException $exception) {
+            return $this->responder->json($response, ['message' => $exception->getMessage()], 503);
+        }
+
+        $email = strtolower(trim((string) ($data['email'] ?? $claims['email'] ?? '')));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->responder->json($response, ['message' => 'A valid email is required.'], 422);
+        }
+
+        if (User::query()->where('email', $email)->exists()) {
+            return $this->responder->json($response, ['message' => 'An account with this email already exists.'], 409);
+        }
+
+        $fullName = trim((string) ($data['full_name'] ?? $claims['name'] ?? ''));
+        $phone = preg_replace('/[^\d+]+/', '', (string) ($data['phone'] ?? ''));
+        $nationalId = preg_replace('/\D+/', '', (string) ($data['national_id'] ?? ''));
+        $branchId = (int) ($data['branch_id'] ?? 0);
+        $level = strtoupper((string) ($data['level'] ?? 'B1'));
+        $guardianName = trim((string) ($data['guardian_name'] ?? ''));
+        $guardianPhone = preg_replace('/[^\d+]+/', '', (string) ($data['guardian_phone'] ?? ''));
+        $comments = trim((string) ($data['comments'] ?? ''));
+
+        if ($fullName === '' || $phone === '' || $nationalId === '' || $branchId <= 0) {
+            return $this->responder->json($response, ['message' => 'Name, phone, national ID, and branch are required.'], 422);
+        }
+
+        if (!in_array($level, ['B1', 'B2'], true)) {
+            return $this->responder->json($response, ['message' => 'Selected level is invalid.'], 422);
+        }
+
+        if (!Branch::query()->find($branchId)) {
+            return $this->responder->json($response, ['message' => 'Selected branch does not exist.'], 422);
+        }
+
+        if (Student::query()->where('national_id', $nationalId)->exists()) {
+            return $this->responder->json($response, ['message' => 'There is already a student with this national ID.'], 422);
+        }
+
+        if (Student::query()->whereRaw('lower(email) = ?', [$email])->exists()) {
+            return $this->responder->json($response, ['message' => 'There is already a student with this email.'], 422);
+        }
+
+        if (Student::query()->where('phone', $phone)->exists()) {
+            return $this->responder->json($response, ['message' => 'There is already a student with this phone.'], 422);
+        }
+
+        $student = Student::query()->create([
+            'branch_id' => $branchId,
+            'national_id' => $nationalId,
+            'full_name' => $fullName,
+            'email' => $email,
+            'phone' => $phone,
+            'level' => $level,
+            'scholarship_percent' => 0,
+            'guardian_name' => $guardianName,
+            'guardian_phone' => $guardianPhone,
+            'comments' => $comments,
+            'status' => 'active',
+        ]);
+
+        $user = new User();
+        $user->email = $email;
+        $user->name = $fullName;
+        $user->role = 'student';
+        $user->branch_id = $branchId;
+        $user->student_id = $student->id;
+        $user->password_hash = password_hash(bin2hex(random_bytes(32)), PASSWORD_BCRYPT);
+        $user->is_active = true;
+        $user->last_login_at = date('Y-m-d H:i:s');
+        $user->save();
 
         return $this->responder->json($response, [
             'token' => $this->auth->issueToken($user),

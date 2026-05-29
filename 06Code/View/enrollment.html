@@ -49,8 +49,8 @@
         <div class="col-lg-4">
           <aside class="alc-card sticky-note">
             <i class="bi bi-clipboard-check card-icon"></i>
-            <h2>How it works</h2>
-            <p>Choose a branch, share contact details, and mention the preferred style or offer. Payment is handled outside the system.</p>
+            <h2 id="enrollmentSidebarTitle">How it works</h2>
+            <p id="enrollmentSidebarText">Choose a branch, share contact details, and mention the preferred style or offer. Payment is handled outside the system.</p>
             <div class="summary-list">
               <span>Monthly style from $35</span>
               <span>Directors contact applicants</span>
@@ -60,6 +60,7 @@
         </div>
         <div class="col-lg-8">
           <form class="alc-card form-grid" id="enrollmentForm">
+            <input id="enrollGoogleCredential" type="hidden">
             <label>
               <span>Full name</span>
               <input id="enrollName" class="form-control" type="text" placeholder="Camila Rojas" maxlength="120" pattern="[A-Za-zÀ-ÿñÑ\s'-]+" required>

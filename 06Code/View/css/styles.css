@@ -522,6 +522,10 @@ label span,
   border-color: var(--alc-red) !important;
 }
 
+.readonly-field {
+  background: #eef0f3;
+}
+
 .auth-layout,
 .station-layout {
   min-height: calc(100vh - 72px);
