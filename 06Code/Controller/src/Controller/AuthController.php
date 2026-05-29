@@ -79,11 +79,18 @@ final class AuthController
                 ->first();
 
             if (!$student) {
-                return $this->responder->json($response, [
-                    'user_exists' => false,
+                $student = Student::query()->create([
+                    'branch_id' => $this->googleDefaultBranchId(),
+                    'national_id' => null,
+                    'full_name' => trim((string) ($claims['name'] ?? $email)),
                     'email' => $email,
-                    'name' => trim((string) ($claims['name'] ?? '')),
-                    'picture' => (string) ($claims['picture'] ?? ''),
+                    'phone' => 'google-' . substr(sha1((string) ($claims['sub'] ?? $email)), 0, 10),
+                    'level' => 'B1',
+                    'scholarship_percent' => 0,
+                    'guardian_name' => '',
+                    'guardian_phone' => '',
+                    'comments' => 'Created from Google sign-in for OAuth practice.',
+                    'status' => 'active',
                 ]);
             }
 
@@ -104,6 +111,19 @@ final class AuthController
             'token' => $this->auth->issueToken($user),
             'user' => $this->auth->publicUser($user),
         ]);
+    }
+
+    private function googleDefaultBranchId(): int
+    {
+        $configuredBranchId = (int) ($_ENV['GOOGLE_AUTO_REGISTER_BRANCH_ID'] ?? 1);
+
+        if ($configuredBranchId > 0 && Branch::query()->find($configuredBranchId)) {
+            return $configuredBranchId;
+        }
+
+        $firstBranch = Branch::query()->orderBy('id')->first();
+
+        return $firstBranch ? (int) $firstBranch->id : 1;
     }
 
     public function googleEnroll(Request $request, Response $response): Response
