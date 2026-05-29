@@ -12,6 +12,7 @@ use RuntimeException;
 final class GoogleTokenVerifier
 {
     private const GOOGLE_JWKS_URI = 'https://www.googleapis.com/oauth2/v3/certs';
+    private const GOOGLE_TOKENINFO_URI = 'https://oauth2.googleapis.com/tokeninfo';
 
     /**
      * @return array<string, mixed>
@@ -37,11 +38,19 @@ final class GoogleTokenVerifier
             throw new InvalidArgumentException('Google credential signature metadata is invalid.');
         }
 
-        $this->verifySignature(
-            "{$encodedHeader}.{$encodedPayload}",
-            $this->base64UrlDecode($encodedSignature),
-            (string) $header['kid']
-        );
+        try {
+            $this->verifySignature(
+                "{$encodedHeader}.{$encodedPayload}",
+                $this->base64UrlDecode($encodedSignature),
+                (string) $header['kid']
+            );
+        } catch (InvalidArgumentException $exception) {
+            if ($exception->getMessage() !== 'Google credential signature could not be verified.') {
+                throw $exception;
+            }
+
+            $claims = $this->verifyWithGoogle($credential);
+        }
 
         $this->validateClaims($claims);
 
@@ -82,6 +91,45 @@ final class GoogleTokenVerifier
         }
 
         throw new InvalidArgumentException('Google credential signature could not be verified.');
+    }
+
+    /**
+     * Google verifies the ID token signature on its side. This is a fallback for
+     * hosts where OpenSSL cannot validate the current Google certificate bundle.
+     *
+     * @return array<string, mixed>
+     */
+    private function verifyWithGoogle(string $credential): array
+    {
+        $context = stream_context_create([
+            'http' => [
+                'header' => "Accept: application/json\r\n",
+                'ignore_errors' => true,
+                'timeout' => 5,
+            ],
+        ]);
+
+        $body = @file_get_contents(
+            self::GOOGLE_TOKENINFO_URI . '?id_token=' . rawurlencode($credential),
+            false,
+            $context
+        );
+
+        if ($body === false) {
+            throw new RuntimeException('Google token verification service could not be reached.');
+        }
+
+        $payload = json_decode($body, true);
+
+        if (!is_array($payload)) {
+            throw new RuntimeException('Google token verification response was invalid.');
+        }
+
+        if (isset($payload['error']) || isset($payload['error_description'])) {
+            throw new InvalidArgumentException('Google credential could not be verified by Google.');
+        }
+
+        return $payload;
     }
 
     /**
