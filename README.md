@@ -1,0 +1,37 @@
+# AWD-30716-Code-Coffee
+
+Repository for the **American Latin Class** project.
+
+Current system version: **ALCSystem v2**.
+
+## Project Map
+
+- `01Definition`: initial project definition.
+- `02Requirements`: requirements, user stories, backlog, and tracking.
+- `03Documentation`: technical documentation, credential guides, deployment notes, and evidence.
+- `04UMLDiagrams`: use case and class diagrams.
+- `05UnitTests`: JSON responses and manual verification evidence.
+- `06Code`: active source code organized directly as an MVC project.
+- `07Other`: additional files, deployment packages, and legacy academic code.
+
+## Main Program
+
+- Model layer: `06Code/Model`
+- View layer: `06Code/View`
+- Controller layer: `06Code/Controller`
+- Technical evidence: `03Documentation/evidence` and `05UnitTests`
+
+## Practice Deployments
+
+- Frontend: `https://projectwebalcpractice-frontend.onrender.com`
+- Backend API: `https://projectwebalcpractice-api.onrender.com`
+- Backend health check: `https://projectwebalcpractice-api.onrender.com/api/health`
+
+## Quick Guides
+
+- MVC architecture: `03Documentation/MVC_ARCHITECTURE.md`
+- Credentials and environment variables: `03Documentation/CREDENTIALS_SETUP.md`
+- Render deployment: `03Documentation/RENDER_DEPLOYMENT.md`
+- Google OAuth setup: `03Documentation/GOOGLE_OAUTH_SETUP.md`
+- Recommended repository structure: `03Documentation/PROJECT_STRUCTURE.md`
+- 2026-05-24 redesign notes: `03Documentation/CHANGES_2026-05-24.md`
