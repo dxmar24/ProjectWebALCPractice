@@ -53,7 +53,15 @@ The static build runs `06Code/View/render-build.sh`, which writes these values i
 
 ## Database
 
-Run `06Code/Controller/database/supabase_schema.sql` again in Supabase. It adds:
+If this is a new empty database, run `06Code/Controller/database/supabase_schema.sql`.
+
+If this is an existing database, run only:
+
+```text
+06Code/Controller/database/google_oauth_migration.sql
+```
+
+It adds:
 
 - `users.google_sub`
 - `users.auth_provider`
